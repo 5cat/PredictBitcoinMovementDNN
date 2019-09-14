@@ -13,6 +13,7 @@ TEST_RATIO=0.25
 
 PRINT_DATA_EACH=50
 TEST_EACH=PRINT_DATA_EACH*10
+
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--test', action='store_true')
@@ -25,8 +26,6 @@ split_timestamp=datetime.datetime.strptime(split_date, "%d/%m/%Y").timestamp()
 
 data=[]
 
-null_data=[]
-nnull_data=[]
 c=0
 last_d=None
 for d in df.values:
@@ -45,7 +44,7 @@ test_data=np.array(data[-split_index:])
 
 def get_x(data,start_index):
 	sampled_x=np.expand_dims(data[start_index:start_index+TIMESTEP_SIZE],axis=1)
-	sampled_x=(sampled_x/(sampled_x[0]+1e-8))-1
+	sampled_x=(sampled_x/(sampled_x[0]+1e-8))-1 #the normalization step
 	return sampled_x
 
 def get_y(data,start_index):
@@ -64,10 +63,10 @@ total_=sum(map(len,ys_train_data_is.values()))
 print(" , ".join(["{}:{:.5%}".format(key,len(value)/total_) for key,value in ys_train_data_is.items()]))
 
 
-def generator(data,TIMESTEP_SIZE,BATCH_SIZE):
+def generator(data,BATCH_SIZE):
 
 	while True:
-		start_index_0=np.random.choice(ys_train_data_is[0],size=BATCH_SIZE//2) #np.random.randint(0,len(data)-TIMESTEP_SIZE-DISTANCE)
+		start_index_0=np.random.choice(ys_train_data_is[0],size=BATCH_SIZE//2)
 		start_index_1=np.random.choice(ys_train_data_is[1],size=BATCH_SIZE//2)
 		x=[]
 		y=[]
@@ -77,7 +76,7 @@ def generator(data,TIMESTEP_SIZE,BATCH_SIZE):
 			x.append(sampled_x)
 			y.append(sampled_y)
 
-		yield np.array(x),np.array(y), np.ones(len(y))#get_sample_weight(y)
+		yield np.array(x),np.array(y)
 
 
 def get_sample_weight(y):
@@ -85,15 +84,16 @@ def get_sample_weight(y):
 
 from keras import backend as K
 
+###################################################
+#This code is to limit the amount of gpu memory that the model use for training
 config = K.tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 sess = K.tf.Session(config=config)
 K.set_session(sess)
-
+###################################################
 from keras.models import Model,load_model
 from keras import layers as kl 
 from keras import optimizers
-from keras import backend as K
 
 
 def average_pred(y_true,y_pred):
@@ -127,8 +127,8 @@ if not args.test:
 						  write_graph=True, write_images=False)
 	tensorboard.set_model(model)
 
-	for x,y,w in generator(train_data,TIMESTEP_SIZE,BATCH_SIZE):
-		r=model.train_on_batch(x,y,w)
+	for x,y in generator(train_data,BATCH_SIZE):
+		r=model.train_on_batch(x,y)
 		tensorboard.on_epoch_end(iteration,{'train_loss':r[0],'train_acc':r[1]})
 		r+=[np.mean(y)]
 		res.append(r)
@@ -141,7 +141,7 @@ if not args.test:
 		if iteration%(TEST_EACH)==0:
 			true=[]
 			test=[]
-			for i in tqdm(range(len(test_data)-TIMESTEP_SIZE-DISTANCE)):
+			for i in tqdm(range(len(test_data)-TIMESTEP_SIZE-DISTANCE),desc="testing"):
 				test.append(get_x(test_data,i))
 				true.append(get_y(test_data,i))
 			true,test=np.array(true),np.array(test)
