@@ -1,4 +1,4 @@
-This repo is related to [this post](https://hashim.id/posts/predicting-bitcoin-prices-with-supervised-learning/)
+This repo is related to [this post](https://hashim.id/predicting-bitcoin-prices-with-supervised-learning/)
 
 ![](https://i.imgur.com/DaNGxhu.png)
 
