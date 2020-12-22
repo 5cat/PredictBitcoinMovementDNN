@@ -3,4 +3,4 @@ This repo is related to [this post](https://hashim.id/predicting-bitcoin-prices-
 ![](https://i.imgur.com/DaNGxhu.png)
 
 ##### Disclaimer
-I'm not responsible of any results based on my code use. its a proof of concept and nothing more.
+This is just a toy project to test my understanding of ML
